@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { auth } from '../firebase/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuth } from '../context/AuthContext'
+import NotificationBell from './NotificationBell'
 import '../styles/Navbar.css'
 
 function Navbar() {
@@ -27,18 +28,20 @@ function Navbar() {
     { path: '/reception/dashboard', icon: '📊', label: 'Dashboard' },
     { path: '/reception/appointments', icon: '📋', label: 'All Appointments' },
     { path: '/reception/doctors', icon: '👨‍⚕️', label: 'Doctors' },
+    { path: '/reception/doctor-delay', icon: '⏰', label: 'Doctor Delay' },
+    { path: '/reception/announcements', icon: '📢', label: 'Announcements' },
   ]
 
   const navItems =
     userRole === 'doctor' ? doctorLinks :
-    userRole === 'patient' ? patientLinks :
-    userRole === 'reception' ? receptionLinks :
-    [
-      { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-      { path: '/appointments', icon: '📅', label: 'Appointments' },
-      { path: '/lab-reports', icon: '🧪', label: 'Lab Reports' },
-      { path: '/inventory', icon: '📦', label: 'Inventory' },
-    ]
+      userRole === 'patient' ? patientLinks :
+        userRole === 'reception' ? receptionLinks :
+          [
+            { path: '/dashboard', icon: '📊', label: 'Dashboard' },
+            { path: '/appointments', icon: '📅', label: 'Appointments' },
+            { path: '/lab-reports', icon: '🧪', label: 'Lab Reports' },
+            { path: '/inventory', icon: '📦', label: 'Inventory' },
+          ]
 
   const roleLabel = userRole === 'doctor' ? '👨‍⚕️ Doctor' : userRole === 'patient' ? '🧑 Patient' : userRole === 'reception' ? '🗂️ Reception' : 'Admin'
 
@@ -61,6 +64,34 @@ function Navbar() {
         ))}
       </nav>
       <div className="navbar-bottom">
+        {/* Notification Bell for Reception */}
+        {userRole === 'reception' && (
+          <div style={{ padding: '0 0.5rem 0.75rem' }}>
+            <NotificationBell />
+          </div>
+        )}
+        {/* Queue Board quick-launch for Reception */}
+        {userRole === 'reception' && (
+          <a
+            href="/queue-display"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px', padding: '8px 12px',
+              color: '#fff', textDecoration: 'none',
+              fontSize: '0.8rem', fontWeight: 600,
+              margin: '0 0.5rem 0.75rem',
+              transition: 'background 0.2s',
+            }}
+          >
+            <span>📺</span>
+            <span>Queue Board</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.65rem', opacity: 0.6 }}>↗️</span>
+          </a>
+        )}
         <div className="user-info">
           <div className="user-avatar">👤</div>
           <div className="user-details">

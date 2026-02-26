@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { db } from '../../firebase/firebase'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
@@ -19,10 +19,26 @@ function PatientDashboard() {
   const [appointments, setAppointments] = useState([])
   const [prescriptions, setPrescriptions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [liveQueue, setLiveQueue] = useState(null)   // today's Waiting appointment (live)
+  const today = new Date().toISOString().split('T')[0]
+
+  // Live listener — today's queue appointment (Waiting or In Consultation)
+  useEffect(() => {
+    if (!user) return
+    const q = query(
+      collection(db, 'appointments'),
+      where('patientId', '==', user.uid),
+      where('date', '==', today),
+    )
+    return onSnapshot(q, snap => {
+      const appts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const active = appts.find(a => a.status === 'Waiting' || a.status === 'In Consultation')
+      setLiveQueue(active || null)
+    })
+  }, [user, today])
 
   useEffect(() => {
     const fetchData = async () => {
-      const today = new Date().toISOString().split('T')[0]
       const apptSnap = await getDocs(query(collection(db, 'appointments'), where('patientId', '==', user.uid)))
       const appts = apptSnap.docs.map(d => ({ id: d.id, ...d.data() }))
       appts.sort((a, b) => (a.date + a.timeSlot) > (b.date + b.timeSlot) ? 1 : -1)
@@ -56,6 +72,53 @@ function PatientDashboard() {
           ➕ Book Appointment
         </button>
       </div>
+
+      {/* ── Live Queue Banner (shows only when patient is in queue today) ── */}
+      {liveQueue && (
+        <div
+          onClick={() => navigate('/patient/appointments')}
+          style={{
+            background: liveQueue.status === 'In Consultation'
+              ? 'linear-gradient(135deg, #0c4a6e, #0369a1)'
+              : 'linear-gradient(135deg, #052e16, #166534)',
+            borderRadius: '16px', padding: '1.1rem 1.4rem',
+            marginBottom: '1.5rem', color: '#fff', cursor: 'pointer',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.2)',
+            display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
+          }}
+        >
+          {/* Left: status + doctor */}
+          <div style={{ flex: 1, minWidth: '160px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', color: '#86efac' }}>
+                {liveQueue.status === 'In Consultation' ? '🩺 IN CONSULTATION' : '🏥 IN QUEUE TODAY'}
+              </span>
+            </div>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>👨‍⚕️ {liveQueue.doctorName}</p>
+            <p style={{ margin: 0, color: '#86efac', fontSize: '0.78rem' }}>{liveQueue.department} · {liveQueue.timeSlot}</p>
+          </div>
+
+          {/* Right: token stats */}
+          {liveQueue.status === 'Waiting' && (
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+              {[
+                { label: 'YOUR TOKEN', val: liveQueue.queuePosition != null ? `#${liveQueue.queuePosition}` : '—', color: liveQueue.patientsBefore === 0 ? '#22c55e' : '#fff' },
+                { label: 'BEFORE YOU', val: liveQueue.patientsBefore ?? '—', color: '#fbbf24' },
+                { label: 'BEHIND YOU', val: liveQueue.patientsAfter ?? '—', color: '#60a5fa' },
+                { label: 'EST. WAIT', val: liveQueue.waitingTime != null ? `~${liveQueue.waitingTime}m` : '—', color: '#c4b5fd' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 12px', textAlign: 'center', minWidth: '58px' }}>
+                  <p style={{ margin: 0, fontSize: '0.5rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.05em' }}>{s.label}</p>
+                  <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: s.color }}>{s.val}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', alignSelf: 'center' }}>Tap for details →</span>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import Login from './pages/Login'
 import Navbar from './components/Navbar'
 import Dashboard from './pages/Dashboard'
@@ -21,6 +22,10 @@ import PatientPrescriptions from './pages/patient/PatientPrescriptions'
 import ReceptionDashboard from './pages/reception/ReceptionDashboard'
 import ReceptionAppointments from './pages/reception/ReceptionAppointments'
 import ReceptionDoctors from './pages/reception/ReceptionDoctors'
+import DoctorDelayManager from './pages/reception/DoctorDelayManager'
+import AnnouncementsManager from './pages/reception/AnnouncementsManager'
+// Public
+import QueueDisplay from './pages/QueueDisplay'
 import './App.css'
 
 function RoleRedirect() {
@@ -93,6 +98,11 @@ function AppRoutes() {
         <Route path="/reception/dashboard" element={<ProtectedRoute><ReceptionDashboard /></ProtectedRoute>} />
         <Route path="/reception/appointments" element={<ProtectedRoute><ReceptionAppointments /></ProtectedRoute>} />
         <Route path="/reception/doctors" element={<ProtectedRoute><ReceptionDoctors /></ProtectedRoute>} />
+        <Route path="/reception/doctor-delay" element={<ProtectedRoute><DoctorDelayManager /></ProtectedRoute>} />
+        <Route path="/reception/announcements" element={<ProtectedRoute><AnnouncementsManager /></ProtectedRoute>} />
+
+        {/* Public — No login required (waiting room TV board) */}
+        <Route path="/queue-display" element={<QueueDisplay />} />
       </Routes>
     </>
   )
@@ -101,9 +111,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   )
 }
